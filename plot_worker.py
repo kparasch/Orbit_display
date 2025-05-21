@@ -75,7 +75,7 @@ class References(object):
 
             worker.bars_h.setOpts(height=orbit_h - worker.reference_h)
             worker.bars_v.setOpts(height=orbit_v - worker.reference_v)
-            print(np.std(orbit_h), np.std(worker.reference_h), np.std(orbit_h - worker.reference_h))
+            
             if restart_thread:
                 thread.start()
 
@@ -102,12 +102,12 @@ class References(object):
     def save_reference(self, worker):
         thread, restart_thread = self.get_and_stop_thread(worker)
 
-        print('trying to save', self.ref_to_save)
         if self.ref_to_save == '1':
-            print('saving 1')
+            print('Saving to reference 1')
             self.reference_1_h = worker.bars_h.opts['height'] + worker.reference_h
             self.reference_1_v = worker.bars_v.opts['height'] + worker.reference_v
         elif self.ref_to_save == '2':
+            print('Saving to reference 2')
             self.reference_2_h = worker.bars_h.opts['height'] + worker.reference_h
             self.reference_2_v = worker.bars_v.opts['height'] + worker.reference_v
         else:
@@ -154,10 +154,10 @@ class Plot_worker(QObject):
 
 
 
-    @pyqtSlot()
     def plot(self):
-        bar_plot(self.plot_h, np.arange(self.N), 100*np.sin(np.arange(self.N)) + np.random.random(self.N)*10-5)
-        bar_plot(self.plot_v, np.arange(self.N), 100*np.sin(np.arange(self.N)) + np.random.random(self.N)*10-5)
+        N = self.N
+        self.bars_h.setOpts(height=100*np.sin(np.arange(N)) + np.random.random(N)*10-5 - self.reference_h)
+        self.bars_v.setOpts(height=100*np.sin(np.arange(N)) + np.random.random(N)*10-5 - self.reference_h)
 
     @pyqtSlot()
     def check_interruption(self):
@@ -181,18 +181,15 @@ def get_plot_thread():
     worker.moveToThread(plot_thread)
     timer = QTimer()
     timer.moveToThread(plot_thread)
-    plot_thread.started.connect(worker.start_plotting)
+    #plot_thread.started.connect(worker.start_plotting)
+    plot_thread.started.connect(timer.start)
     worker.finished.connect(plot_thread.quit)
     plot_thread.destroyed.connect(lambda : print('Plot thread destroyed'))
     worker.destroyed.connect(lambda : print('Plot worker destroyed'))
     timer.destroyed.connect(lambda : print('Plot timer destroyed'))
     plot_thread.worker = worker ### attach worker to thread so that it is not garbage collected
     plot_thread.timer = timer ### attach timer to thread so that it is not garbage collected
-    #timer.timeout.connect(lambda : bar_plot(worker.plot_h, np.arange(N), 100*np.sin(np.arange(N)) + np.random.random(N)*10-5))
-    timer.timeout.connect(lambda : worker.bars_h.setOpts(height=100*np.sin(np.arange(worker.N)) + np.random.random(worker.N)*10-5 - worker.reference_h))
-    timer.timeout.connect(lambda : worker.bars_v.setOpts(height=100*np.sin(np.arange(worker.N)) + np.random.random(worker.N)*10-5 - worker.reference_v))
-    #timer.timeout.connect(lambda : bar_plot(worker.plot_v, np.arange(N), 100*np.sin(np.arange(N)) + np.random.random(N)*10-5))
-    #timer.timeout.connect(lambda : bar_plot(worker.plot_v, np.arange(N), 100*np.sin(np.arange(N)) + np.random.random(N)*10-5))
+    timer.timeout.connect(lambda : worker.plot())
     timer.timeout.connect(worker.check_interruption)
     timer.setInterval(50)
     plot_thread.finished.connect(timer.stop)
