@@ -15,13 +15,13 @@ MYCOL = DESYOrange
 
 
 
-def bar_plot(graph, x, y):
-    #graph.curve.setData(y)
-    graph.clear()
-    for xpos, xlabel in xticks:
-        graph.addItem(pg.InfiniteLine(pos=xpos, angle=90))
-    graph.getPlotItem().getAxis('bottom').setTicks([xticks])
-    graph.addItem(pg.BarGraphItem(x=x, height=y, width=0.5, pen=MYCOL, brush=MYCOL))
+# def bar_plot(graph, x, y):
+#     #graph.curve.setData(y)
+#     graph.clear()
+#     for xpos, xlabel in xticks:
+#         graph.addItem(pg.InfiniteLine(pos=xpos, angle=90))
+#     graph.getPlotItem().getAxis('bottom').setTicks([xticks])
+#     graph.addItem(pg.BarGraphItem(x=x, height=y, width=0.5, pen=MYCOL, brush=MYCOL))
 
 class References(object):
     def __init__(self):
