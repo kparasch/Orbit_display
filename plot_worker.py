@@ -56,14 +56,14 @@ class References(object):
     def save_reference(self, worker):
         if self.ref_to_save == '1':
             print('Saving to reference 1.')
-            self.reference_1_x = worker.bars_x.opts['height'] + worker.reference_x
-            self.reference_1_y = worker.bars_y.opts['height'] + worker.reference_y
+            self.reference_1_x = worker.orbit_x
+            self.reference_1_y = worker.orbit_y
             if worker.active_reference == 1:
                 self.switch_to_ref1(True, worker)
         elif self.ref_to_save == '2':
             print('Saving to reference 2.')
-            self.reference_2_x = worker.bars_x.opts['height'] + worker.reference_x
-            self.reference_2_y = worker.bars_y.opts['height'] + worker.reference_y
+            self.reference_2_x = worker.orbit_x
+            self.reference_2_y = worker.orbit_y
             if worker.active_reference == 2:
                 self.switch_to_ref2(True, worker)
         else:
@@ -119,12 +119,12 @@ class Plot_worker(QObject):
         self.bars_y.setOpts(height=self.orbit_y - self.reference_y)
 
     @pyqtSlot(np.ndarray)
-    def plot_x(self, orbit_x):
+    def store_x(self, orbit_x):
         self.orbit_x = orbit_x
         self.bars_x.setOpts(height=self.orbit_x - self.reference_x)
 
     @pyqtSlot(np.ndarray)
-    def plot_y(self, orbit_y):
+    def store_y(self, orbit_y):
         self.orbit_y = orbit_y
         self.bars_y.setOpts(height=self.orbit_y - self.reference_y)
 
@@ -133,8 +133,8 @@ class Plot_worker(QObject):
         orbit_y = np.array(pt.get(address=BPM_ADDRESS, property=BPM_PROPERTY['y'])['data'][:-2])
         orbit_x *= NM_TO_M
         orbit_y *= NM_TO_M
-        self.plot_x(orbit_x)
-        self.plot_y(orbit_y)
+        self.store_x(orbit_x)
+        self.store_y(orbit_y)
 
 
 
@@ -192,8 +192,8 @@ def get_plot_thread(plot_worker):
     print('Plot thread initialized')
     worker = Thread_worker()
     worker.moveToThread(plot_thread)
-    worker.got_x.connect(plot_worker.plot_x)
-    worker.got_y.connect(plot_worker.plot_y)
+    worker.got_x.connect(plot_worker.store_x)
+    worker.got_y.connect(plot_worker.store_y)
 
     timer = QTimer()
     timer.moveToThread(plot_thread)

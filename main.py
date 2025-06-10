@@ -38,8 +38,6 @@ worker = plot_thread.worker
 
 button_plot = QPushButton('Get', parent=window) 
 button_plot.clicked.connect(plot_worker.get_bpm_data)
-# button_plot.clicked.connect(lambda : worker.bars_h.setOpts(height=np.random.random(worker.N)*10-5))
-# button_plot.clicked.connect(lambda : worker.bars_v.setOpts(height=np.random.random(worker.N)*10-5))
 
 
 button_start = QPushButton('Start', parent=window) 
@@ -92,21 +90,8 @@ group_save = GroupSave(parent=window)
 group_save.box1.checkStateChanged.connect(lambda : references.set_ref_to_save(group_save.box1.isChecked(), '1'))
 group_save.box2.checkStateChanged.connect(lambda : references.set_ref_to_save(group_save.box2.isChecked(), '2'))
 
-# checkbox_orbit.clicked.connect(checkbox_orbit.setDisabled)
-# checkbox_orbit.clicked.connect(checkbox_ref1.setEnabled)
-# checkbox_orbit.clicked.connect(checkbox_ref2.setEnabled)
-# checkbox_orbit.clicked.connect(checkbox_ref1.)
-# 
-# checkbox_ref1.clicked.connect(checkbox_orbit.setEnabled)
-# checkbox_ref1.clicked.connect(checkbox_ref1.setDisabled)
-# checkbox_ref1.clicked.connect(checkbox_ref2.setEnabled)
-# 
-# checkbox_ref2.clicked.connect(checkbox_orbit.setEnabled)
-# checkbox_ref2.clicked.connect(checkbox_ref1.setEnabled)
-# checkbox_ref2.clicked.connect(checkbox_ref2.setDisabled)
-
-layout.addWidget(plot_worker.plot_h, 0, 0, 1, 3)
-layout.addWidget(plot_worker.plot_v, 1, 0, 1, 3)
+layout.addWidget(plot_worker.plot_x, 0, 0, 1, 3)
+layout.addWidget(plot_worker.plot_y, 1, 0, 1, 3)
 
 layout.addWidget(button_plot, 2, 0, 1, 1)
 layout.addWidget(button_start, 2, 1, 1, 1)
