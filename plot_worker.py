@@ -6,9 +6,6 @@ import PyTine as pt
 
 DESYCyan = (0, 159, 223)
 DESYOrange = (241, 143, 31)
-cool = (8, 247, 254)
-bluish = (33, 41, 70)
-pink = (254, 83, 187)
 DESYdarkblue = (0,75,110)
 MYCOL = DESYOrange
 
@@ -52,26 +49,21 @@ class References(object):
             worker.plot()
             worker.active_reference = 2
 
-    def plot_orbit_minus_ref(worker):
-        worker.bars_h.setOpts(height=worker.orbit_x - worker.reference_x)
-        worker.bars_v.setOpts(height=worker.orbit_y - worker.reference_y)
-
     def set_ref_to_save(self, flag, ref_to_save: str):
         if flag:
             self.ref_to_save = ref_to_save
     
     def save_reference(self, worker):
-        print('trying to save', self.ref_to_save)
-
         if self.ref_to_save == '1':
-            print('saving 1')
-            self.reference_1_x = worker.bars_h.opts['height'] + worker.reference_x
-            self.reference_1_y = worker.bars_v.opts['height'] + worker.reference_y
+            print('Saving to reference 1.')
+            self.reference_1_x = worker.bars_x.opts['height'] + worker.reference_x
+            self.reference_1_y = worker.bars_y.opts['height'] + worker.reference_y
             if worker.active_reference == 1:
                 self.switch_to_ref1(True, worker)
         elif self.ref_to_save == '2':
-            self.reference_2_x = worker.bars_h.opts['height'] + worker.reference_x
-            self.reference_2_y = worker.bars_v.opts['height'] + worker.reference_y
+            print('Saving to reference 2.')
+            self.reference_2_x = worker.bars_x.opts['height'] + worker.reference_x
+            self.reference_2_y = worker.bars_y.opts['height'] + worker.reference_y
             if worker.active_reference == 2:
                 self.switch_to_ref2(True, worker)
         else:
@@ -82,34 +74,33 @@ class Plot_worker(QObject):
     def __init__(self):
         super().__init__()
 
-
-        self.plot_h = pg.plot()
-        self.plot_v = pg.plot()
+        self.plot_x = pg.plot()
+        self.plot_y = pg.plot()
 
         self.bpm_list = [line.strip('\n,\'') for line in open('bpm_list.txt','r').readlines()][:-2]
         self.N = len(self.bpm_list) 
         self.ymin = -0.002
         self.ymax = +0.002
 
-        self.plot_h.setYRange(self.ymin, self.ymax)
-        self.plot_v.setYRange(self.ymin, self.ymax)
+        self.plot_x.setYRange(self.ymin, self.ymax)
+        self.plot_y.setYRange(self.ymin, self.ymax)
 
-        self.bars_h = pg.BarGraphItem(x=np.arange(self.N), height=np.zeros(self.N), width=0.5, pen=MYCOL, brush=MYCOL)
-        self.bars_v = pg.BarGraphItem(x=np.arange(self.N), height=np.zeros(self.N), width=0.5, pen=MYCOL, brush=MYCOL)
+        self.bars_x = pg.BarGraphItem(x=np.arange(self.N), height=np.zeros(self.N), width=0.5, pen=MYCOL, brush=MYCOL)
+        self.bars_y = pg.BarGraphItem(x=np.arange(self.N), height=np.zeros(self.N), width=0.5, pen=MYCOL, brush=MYCOL)
 
-        self.plot_h.addItem(self.bars_h)
-        self.plot_v.addItem(self.bars_v)
+        self.plot_x.addItem(self.bars_x)
+        self.plot_y.addItem(self.bars_y)
 
-        self.plot_h.setLabel('left', 'Horizontal', units='m')
-        self.plot_v.setLabel('left', 'Vertical', units='m')
+        self.plot_x.setLabel('left', 'Horizontal', units='m')
+        self.plot_y.setLabel('left', 'Vertical', units='m')
 
-        self.plot_h.setBackground(DESYdarkblue)
-        self.plot_v.setBackground(DESYdarkblue)
+        self.plot_x.setBackground(DESYdarkblue)
+        self.plot_y.setBackground(DESYdarkblue)
 	
         xticks =  [[-0.5, 'SWR'], [21.5, 'W'], [45.5 ,'NW'], [67.5, 'N'], [98.5, 'NO'], 
                    [172.5, 'O'], [205.5, 'SO'], [224.5, 'S'], [245.5, 'SWL']]
 
-        for graph in [self.plot_h, self.plot_v]: 
+        for graph in [self.plot_x, self.plot_y]: 
             for xpos, xlabel in xticks:
                 graph.addItem(pg.InfiniteLine(pos=xpos, angle=90))
             graph.getPlotItem().getAxis('bottom').setTicks([xticks])
@@ -124,18 +115,18 @@ class Plot_worker(QObject):
 
     @pyqtSlot()
     def plot(self):
-        self.bars_h.setOpts(height=self.orbit_x - self.reference_x)
-        self.bars_v.setOpts(height=self.orbit_y - self.reference_y)
+        self.bars_x.setOpts(height=self.orbit_x - self.reference_x)
+        self.bars_y.setOpts(height=self.orbit_y - self.reference_y)
 
     @pyqtSlot(np.ndarray)
     def plot_x(self, orbit_x):
         self.orbit_x = orbit_x
-        self.bars_h.setOpts(height=self.orbit_x - self.reference_x)
+        self.bars_x.setOpts(height=self.orbit_x - self.reference_x)
 
     @pyqtSlot(np.ndarray)
     def plot_y(self, orbit_y):
         self.orbit_y = orbit_y
-        self.bars_v.setOpts(height=self.orbit_y - self.reference_y)
+        self.bars_y.setOpts(height=self.orbit_y - self.reference_y)
 
     def get_bpm_data(self):
         orbit_x = np.array(pt.get(address=BPM_ADDRESS, property=BPM_PROPERTY['x'])['data'][:-2])
