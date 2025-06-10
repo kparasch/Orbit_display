@@ -8,7 +8,7 @@ import numpy as np
 
 from PyQt6.QtWidgets import QApplication, QMainWindow, QGraphicsScene, QGraphicsView
 from PyQt6.QtGui import QPen, QBrush, QColor, QPalette
-from plot_worker import get_plot_thread, References
+from plot_worker import get_plot_thread, References, Plot_worker
 
 DESYCyan = (0, 159, 223)
 DESYOrange = (241, 143, 31)
@@ -32,13 +32,12 @@ layout = QGridLayout(parent=window)
 window.setLayout(layout)
 
 
-plot_h = pg.plot()
-plot_v = pg.plot()
-plot_thread = get_plot_thread(plot_h, plot_v)
+plot_worker = Plot_worker()
+plot_thread = get_plot_thread(plot_worker)
 worker = plot_thread.worker
 
 button_plot = QPushButton('Plot', parent=window) 
-button_plot.clicked.connect(worker.plot)
+button_plot.clicked.connect(plot_worker.plot)
 # button_plot.clicked.connect(lambda : worker.bars_h.setOpts(height=np.random.random(worker.N)*10-5))
 # button_plot.clicked.connect(lambda : worker.bars_v.setOpts(height=np.random.random(worker.N)*10-5))
 
@@ -53,7 +52,7 @@ button_stop.clicked.connect(plot_thread.requestInterruption)
 references = References()
 
 button_save = QPushButton('Save reference', parent=window) 
-button_save.clicked.connect(lambda : references.save_reference(worker))
+button_save.clicked.connect(lambda : references.save_reference(plot_worker))
 
 group_display_box = QGroupBox(parent=window)
 group_display = QButtonGroup(parent=window)
@@ -65,9 +64,9 @@ group_display.addButton(checkbox_ref1)
 group_display.addButton(checkbox_ref2)
 checkbox_orbit.setChecked(True)
 
-checkbox_orbit.checkStateChanged.connect(lambda : references.switch_to_no_ref(checkbox_orbit.isChecked(), worker))
-checkbox_ref1.checkStateChanged.connect(lambda : references.switch_to_ref1(checkbox_ref1.isChecked(), worker))
-checkbox_ref2.checkStateChanged.connect(lambda : references.switch_to_ref2(checkbox_ref2.isChecked(), worker))
+checkbox_orbit.checkStateChanged.connect(lambda : references.switch_to_no_ref(checkbox_orbit.isChecked(), plot_worker))
+checkbox_ref1.checkStateChanged.connect(lambda : references.switch_to_ref1(checkbox_ref1.isChecked(), plot_worker))
+checkbox_ref2.checkStateChanged.connect(lambda : references.switch_to_ref2(checkbox_ref2.isChecked(), plot_worker))
 
 class GroupSave(QWidget):
     def __init__(self, parent=None):
@@ -101,8 +100,8 @@ group_save.box2.checkStateChanged.connect(lambda : references.set_ref_to_save(gr
 # checkbox_ref2.clicked.connect(checkbox_ref1.setEnabled)
 # checkbox_ref2.clicked.connect(checkbox_ref2.setDisabled)
 
-layout.addWidget(plot_thread.worker.plot_h, 0, 0, 1, 3)
-layout.addWidget(plot_thread.worker.plot_v, 1, 0, 1, 3)
+layout.addWidget(plot_worker.plot_h, 0, 0, 1, 3)
+layout.addWidget(plot_worker.plot_v, 1, 0, 1, 3)
 
 layout.addWidget(button_plot, 2, 0, 1, 1)
 layout.addWidget(button_start, 2, 1, 1, 1)
