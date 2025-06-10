@@ -13,16 +13,6 @@ DESYdarkblue = (0,75,110)
 MYCOL = DESYOrange
 
 
-
-
-def bar_plot(graph, x, y):
-    #graph.curve.setData(y)
-    graph.clear()
-    for xpos, xlabel in xticks:
-        graph.addItem(pg.InfiniteLine(pos=xpos, angle=90))
-    graph.getPlotItem().getAxis('bottom').setTicks([xticks])
-    graph.addItem(pg.BarGraphItem(x=x, height=y, width=0.5, pen=MYCOL, brush=MYCOL))
-
 class References(object):
     def __init__(self):
         self.bpm_list = [line.strip('\n,\'') for line in open('bpm_list.txt','r').readlines()][:-2]
@@ -30,57 +20,38 @@ class References(object):
 
         self.zero = np.zeros(self.N)
 
-        self.reference_1_h = np.zeros(self.N)
-        self.reference_1_v = np.zeros(self.N)
+        self.reference_1_x = np.zeros(self.N)
+        self.reference_1_y = np.zeros(self.N)
 
-        self.reference_2_h = np.zeros(self.N)
-        self.reference_2_v = np.zeros(self.N)
+        self.reference_2_x = np.zeros(self.N)
+        self.reference_2_y = np.zeros(self.N)
         
         self.ref_to_save = '1'
 
-    def get_and_stop_thread(self, worker):
-        thread = worker.thread()
-        if thread.isRunning():
-            worker.finished.emit()
-            thread.wait()
-            restart_thread = True
-        else:
-            restart_thread = False
-        return thread, restart_thread
-
     def switch_to_no_ref(self, flag, worker):
         if flag:
-            orbit_h = worker.bars_h.opts['height'] + worker.reference_h
-            orbit_v = worker.bars_v.opts['height'] + worker.reference_v
-
-            worker.reference_h = self.zero
-            worker.reference_v = self.zero
-
-            worker.bars_h.setOpts(height=orbit_h - worker.reference_h)
-            worker.bars_v.setOpts(height=orbit_v - worker.reference_v)
+            worker.reference_x = self.zero
+            worker.reference_y = self.zero
+            worker.plot()
             worker.active_reference = 0
 
     def switch_to_ref1(self, flag, worker):
         if flag:
-            orbit_h = worker.bars_h.opts['height'] + worker.reference_h
-            orbit_v = worker.bars_v.opts['height'] + worker.reference_v
-
-            worker.reference_h = self.reference_1_h
-            worker.reference_v = self.reference_1_v
-
-            worker.bars_h.setOpts(height=orbit_h - worker.reference_h)
-            worker.bars_v.setOpts(height=orbit_v - worker.reference_v)
+            worker.reference_x = self.reference_1_x
+            worker.reference_y = self.reference_1_y
+            worker.plot()
+            worker.active_reference = 1
 
     def switch_to_ref2(self, flag, worker):
         if flag:
-            orbit_h = worker.bars_h.opts['height'] + worker.reference_h
-            orbit_v = worker.bars_v.opts['height'] + worker.reference_v
-            
-            worker.reference_h = self.reference_2_h
-            worker.reference_v = self.reference_2_v
+            worker.reference_x = self.reference_2_x
+            worker.reference_y = self.reference_2_y
+            worker.plot()
+            worker.active_reference = 2
 
-            worker.bars_h.setOpts(height=orbit_h - worker.reference_h)
-            worker.bars_v.setOpts(height=orbit_v - worker.reference_v)
+    def plot_orbit_minus_ref(worker):
+        worker.bars_h.setOpts(height=worker.orbit_x - worker.reference_x)
+        worker.bars_v.setOpts(height=worker.orbit_y - worker.reference_y)
 
     def set_ref_to_save(self, flag, ref_to_save: str):
         if flag:
@@ -91,11 +62,15 @@ class References(object):
 
         if self.ref_to_save == '1':
             print('saving 1')
-            self.reference_1_h = worker.bars_h.opts['height'] + worker.reference_h
-            self.reference_1_v = worker.bars_v.opts['height'] + worker.reference_v
+            self.reference_1_x = worker.bars_h.opts['height'] + worker.reference_x
+            self.reference_1_y = worker.bars_v.opts['height'] + worker.reference_y
+            if worker.active_reference == 1:
+                self.switch_to_ref1(True, worker)
         elif self.ref_to_save == '2':
-            self.reference_2_h = worker.bars_h.opts['height'] + worker.reference_h
-            self.reference_2_v = worker.bars_v.opts['height'] + worker.reference_v
+            self.reference_2_x = worker.bars_h.opts['height'] + worker.reference_x
+            self.reference_2_y = worker.bars_v.opts['height'] + worker.reference_y
+            if worker.active_reference == 2:
+                self.switch_to_ref2(True, worker)
         else:
             raise Exception(f'Unknown reference: {self.ref_to_save}')
 
@@ -109,8 +84,8 @@ class Plot_worker(QObject):
 
         self.bpm_list = [line.strip('\n,\'') for line in open('bpm_list.txt','r').readlines()][:-2]
         self.N = len(self.bpm_list) 
-        self.ymin = -500
-        self.ymax = +500
+        self.ymin = -0.002
+        self.ymax = +0.002
 
         self.plot_h.setYRange(self.ymin, self.ymax)
         self.plot_v.setYRange(self.ymin, self.ymax)
@@ -127,7 +102,7 @@ class Plot_worker(QObject):
         self.plot_h.setBackground(DESYdarkblue)
         self.plot_v.setBackground(DESYdarkblue)
 	
-        xticks =  [[0.5, 'SWR'], [21.5, 'W'], [45.5 ,'NW'], [67.5, 'N'], [98.5, 'NO'], 
+        xticks =  [[-0.5, 'SWR'], [21.5, 'W'], [45.5 ,'NW'], [67.5, 'N'], [98.5, 'NO'], 
                    [172.5, 'O'], [205.5, 'SO'], [224.5, 'S'], [245.5, 'SWL']]
 
         for graph in [self.plot_h, self.plot_v]: 
@@ -136,8 +111,8 @@ class Plot_worker(QObject):
             graph.getPlotItem().getAxis('bottom').setTicks([xticks])
 
         self.active_reference = 0
-        self.reference_h = np.zeros(self.N)
-        self.reference_v = np.zeros(self.N)
+        self.reference_x = np.zeros(self.N)
+        self.reference_y = np.zeros(self.N)
         self.orbit_x = np.zeros(self.N)
         self.orbit_y = np.zeros(self.N)
 
@@ -145,18 +120,18 @@ class Plot_worker(QObject):
 
     @pyqtSlot()
     def plot(self):
-        self.bars_h.setOpts(height=self.orbit_x - self.reference_h)
-        self.bars_v.setOpts(height=self.orbit_y - self.reference_v)
+        self.bars_h.setOpts(height=self.orbit_x - self.reference_x)
+        self.bars_v.setOpts(height=self.orbit_y - self.reference_y)
 
     @pyqtSlot(np.ndarray)
     def plot_x(self, orbit_x):
         self.orbit_x = orbit_x
-        self.bars_h.setOpts(height=self.orbit_x - self.reference_h)
+        self.bars_h.setOpts(height=self.orbit_x - self.reference_x)
 
     @pyqtSlot(np.ndarray)
     def plot_y(self, orbit_y):
         self.orbit_y = orbit_y
-        self.bars_v.setOpts(height=self.orbit_y - self.reference_v)
+        self.bars_v.setOpts(height=self.orbit_y - self.reference_y)
 
 
 class Thread_worker(QObject):
@@ -168,6 +143,7 @@ class Thread_worker(QObject):
     def __init__(self):
         super().__init__()
 
+        self.nm_to_m = 1e-9
 
         self.bpm_list = [line.strip('\n,\'') for line in open('bpm_list.txt','r').readlines()][:-2]
         self.N = len(self.bpm_list) 
@@ -181,22 +157,24 @@ class Thread_worker(QObject):
         print('Plot worker initialized')
 
     def get_bpm_data(self):
-        orbit_x = pt.get(address=self.bpm_address, property=self.bpm_property['x'])['data'][:-2]
-        orbit_y = pt.get(address=self.bpm_address, property=self.bpm_property['y'])['data'][:-2]
+        self.orbit_x[:] = pt.get(address=self.bpm_address, property=self.bpm_property['x'])['data'][:-2]
+        self.orbit_y[:] = pt.get(address=self.bpm_address, property=self.bpm_property['y'])['data'][:-2]
+        self.orbit_x *= self.nm_to_m
+        self.orbit_y *= self.nm_to_m
+        self.got_x.emit(orbit_x)
+        self.got_y.emit(orbit_y)
         self.bars_h.setOpts(height=orbit_x - self.reference_h)
         self.bars_v.setOpts(height=orbit_y - self.reference_v)
 
     def attach_callback_x(self, id, cc, d):
         self.orbit_x[:] = d['data'][:-2] 
-        self.orbit_x *= 1e-9 ## convert nm to mm
+        self.orbit_x *= self.nm_to_m
         self.got_x.emit(self.orbit_x)
-        # self.bars_h.setOpts(height=self.orbit_x - self.reference_h)
 
     def attach_callback_y(self, id, cc, d):
         self.orbit_y[:] = d['data'][:-2] #
-        self.orbit_y *= 1e-9 #convert nm to m
+        self.orbit_y *= self.nm_to_m
         self.got_y.emit(self.orbit_y)
-        # self.bars_v.setOpts(height=self.orbit_y - self.reference_v)
 
     @pyqtSlot()
     def check_interruption(self):
@@ -206,6 +184,7 @@ class Thread_worker(QObject):
             self.finished.emit()
             pt.detach(self.lidx)
             pt.detach(self.lidy)
+            print(f'Tine IDs detached: {self.lidx}, {self.lidy}')
             return
 
     @pyqtSlot()
@@ -246,8 +225,6 @@ def get_plot_thread(plot_worker):
     QThreadPool.globalInstance().setExpiryTimeout(-1)
 
     # timer.timeout.connect(lambda : worker.get_bpm_data())
-    ### timer.timeout.connect(lambda : worker.bars_h.setOpts(height=100*np.sin(np.arange(worker.N)) + np.random.random(worker.N)*10-5 - worker.reference_h))
-    ### timer.timeout.connect(lambda : worker.bars_v.setOpts(height=100*np.sin(np.arange(worker.N)) + np.random.random(worker.N)*10-5 - worker.reference_v))
 
     # timer.setInterval(100)
     # plot_thread.finished.connect(timer.stop)

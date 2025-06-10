@@ -44,9 +44,14 @@ button_plot.clicked.connect(plot_worker.plot)
 
 button_start = QPushButton('Start', parent=window) 
 button_start.clicked.connect(plot_thread.start)
+plot_thread.started.connect(lambda : button_start.setEnabled(False))
+plot_thread.started.connect(lambda : button_stop.setEnabled(True))
 
 button_stop = QPushButton('Stop', parent=window) 
 button_stop.clicked.connect(plot_thread.requestInterruption)
+button_stop.setEnabled(False)
+plot_thread.finished.connect(lambda : button_start.setEnabled(True))
+plot_thread.finished.connect(lambda : button_stop.setEnabled(False))
 
 
 references = References()
