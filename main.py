@@ -8,7 +8,8 @@ import numpy as np
 
 from PyQt6.QtWidgets import QApplication, QMainWindow, QGraphicsScene, QGraphicsView
 from PyQt6.QtGui import QPen, QBrush, QColor, QPalette
-from plot_worker import get_plot_thread, References, Plot_worker
+from plot_worker import get_plot_thread, Plot_worker
+from references import References
 
 DESYCyan = (0, 159, 223)
 DESYOrange = (241, 143, 31)

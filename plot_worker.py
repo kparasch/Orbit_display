@@ -13,62 +13,6 @@ NM_TO_M = 1e-9
 BPM_ADDRESS = '/PETRA/REFORBIT/BPM_SWR_13'
 BPM_PROPERTY = {'x' : 'SA_X_BBAGO', 'y' : 'SA_Y_BBAGO'}
 
-class References(object):
-    def __init__(self):
-        self.bpm_list = [line.strip('\n,\'') for line in open('bpm_list.txt','r').readlines()][:-2]
-        self.N = len(self.bpm_list) 
-
-        self.zero = np.zeros(self.N)
-
-        self.reference_1_x = np.zeros(self.N)
-        self.reference_1_y = np.zeros(self.N)
-
-        self.reference_2_x = np.zeros(self.N)
-        self.reference_2_y = np.zeros(self.N)
-        
-        self.ref_to_save = '1'
-
-    def switch_to_no_ref(self, flag, worker):
-        if flag:
-            worker.reference_x = self.zero
-            worker.reference_y = self.zero
-            worker.plot()
-            worker.active_reference = 0
-
-    def switch_to_ref1(self, flag, worker):
-        if flag:
-            worker.reference_x = self.reference_1_x
-            worker.reference_y = self.reference_1_y
-            worker.plot()
-            worker.active_reference = 1
-
-    def switch_to_ref2(self, flag, worker):
-        if flag:
-            worker.reference_x = self.reference_2_x
-            worker.reference_y = self.reference_2_y
-            worker.plot()
-            worker.active_reference = 2
-
-    def set_ref_to_save(self, flag, ref_to_save: str):
-        if flag:
-            self.ref_to_save = ref_to_save
-    
-    def save_reference(self, worker):
-        if self.ref_to_save == '1':
-            print('Saving to reference 1.')
-            self.reference_1_x = worker.orbit_x.copy()
-            self.reference_1_y = worker.orbit_y.copy()
-            if worker.active_reference == 1:
-                self.switch_to_ref1(True, worker)
-        elif self.ref_to_save == '2':
-            print('Saving to reference 2.')
-            self.reference_2_x = worker.orbit_x.copy()
-            self.reference_2_y = worker.orbit_y.copy()
-            if worker.active_reference == 2:
-                self.switch_to_ref2(True, worker)
-        else:
-            raise Exception(f'Unknown reference: {self.ref_to_save}')
-
     
 class Plot_worker(QObject):
     def __init__(self):
@@ -135,7 +79,6 @@ class Plot_worker(QObject):
         orbit_y *= NM_TO_M
         self.store_x(orbit_x)
         self.store_y(orbit_y)
-
 
 
 class Thread_worker(QObject):
@@ -210,11 +153,4 @@ def get_plot_thread(plot_worker):
     plot_thread.worker = worker
     plot_thread.timer = timer 
 
-    #prevent thread from expiring?
-    # QThreadPool.globalInstance().setExpiryTimeout(-1)
-
-    # timer.timeout.connect(lambda : worker.get_bpm_data())
-
-    # timer.setInterval(100)
-    # plot_thread.finished.connect(timer.stop)
     return plot_thread
