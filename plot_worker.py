@@ -15,13 +15,13 @@ MYCOL = DESYOrange
 
 
 
-# def bar_plot(graph, x, y):
-#     #graph.curve.setData(y)
-#     graph.clear()
-#     for xpos, xlabel in xticks:
-#         graph.addItem(pg.InfiniteLine(pos=xpos, angle=90))
-#     graph.getPlotItem().getAxis('bottom').setTicks([xticks])
-#     graph.addItem(pg.BarGraphItem(x=x, height=y, width=0.5, pen=MYCOL, brush=MYCOL))
+def bar_plot(graph, x, y):
+    #graph.curve.setData(y)
+    graph.clear()
+    for xpos, xlabel in xticks:
+        graph.addItem(pg.InfiniteLine(pos=xpos, angle=90))
+    graph.getPlotItem().getAxis('bottom').setTicks([xticks])
+    graph.addItem(pg.BarGraphItem(x=x, height=y, width=0.5, pen=MYCOL, brush=MYCOL))
 
 class References(object):
     def __init__(self):
@@ -121,9 +121,14 @@ class References(object):
 class Plot_worker(QObject):
     finished = pyqtSignal()
     error = pyqtSignal(str)
+    got_x = pyqtSignal()
+    got_y = pyqtSignal()
     
     def __init__(self, plot_h, plot_v):
         super().__init__()
+
+        self.got_x.connect(self.plot_x)
+        self.got_y.connect(self.plot_y)
 
         self.plot_h = plot_h
         self.plot_v = plot_v
@@ -145,8 +150,8 @@ class Plot_worker(QObject):
         self.plot_h.addItem(self.bars_h)
         self.plot_v.addItem(self.bars_v)
 
-        self.plot_h.setLabel('left', 'Horizontal', units='mm')
-        self.plot_v.setLabel('left', 'Vertical', units='mm')
+        self.plot_h.setLabel('left', 'Horizontal', units='m')
+        self.plot_v.setLabel('left', 'Vertical', units='m')
 
         self.plot_h.setBackground(DESYdarkblue)
         self.plot_v.setBackground(DESYdarkblue)
@@ -160,6 +165,8 @@ class Plot_worker(QObject):
             graph.getPlotItem().getAxis('bottom').setTicks([xticks])
         self.reference_h = np.zeros(self.N)
         self.reference_v = np.zeros(self.N)
+        self.orbit_x = np.zeros(self.N)
+        self.orbit_y = np.zeros(self.N)
 
         print('Plot worker initialized')
 
@@ -171,23 +178,35 @@ class Plot_worker(QObject):
 
 
     def attach_callback_x(self, id, cc, d):
-        orbit_x = d['data'][:-2]
-        self.bars_h.setOpts(height=orbit_x - self.reference_h)
+        self.orbit_x[:] = d['data'][:-2] 
+        self.orbit_x *= 1e-9 ## convert nm to mm
+        self.got_x.emit()
+        # self.bars_h.setOpts(height=self.orbit_x - self.reference_h)
 
     def attach_callback_y(self, id, cc, d):
-        orbit_y = d['data'][:-2]
-        self.bars_v.setOpts(height=orbit_y - self.reference_v)
+        self.orbit_y[:] = d['data'][:-2] #
+        self.orbit_y *= 1e-9 #convert nm to m
+        self.got_y.emit()
+        # self.bars_v.setOpts(height=self.orbit_y - self.reference_v)
         
 
     @pyqtSlot()
     def plot(self):
-        bar_plot(self.plot_h, np.arange(self.N), 100*np.sin(np.arange(self.N)) + np.random.random(self.N)*10-5)
-        bar_plot(self.plot_v, np.arange(self.N), 100*np.sin(np.arange(self.N)) + np.random.random(self.N)*10-5)
+        self.bars_h.setOpts(height=self.orbit_x - self.reference_h)
+        self.bars_v.setOpts(height=self.orbit_y - self.reference_v)
+
+    @pyqtSlot()
+    def plot_x(self):
+        self.bars_h.setOpts(height=self.orbit_x - self.reference_h)
+
+    @pyqtSlot()
+    def plot_y(self):
+        self.bars_v.setOpts(height=self.orbit_y - self.reference_v)
 
     @pyqtSlot()
     def check_interruption(self):
         if self.thread().isInterruptionRequested():
-            #self.thread().timer.stop()
+            self.thread().timer.stop()
             print('Plot thread has been requested to interrupt.')
             self.finished.emit()
             pt.detach(self.lidx)
@@ -221,11 +240,11 @@ def get_plot_thread(plot_h, plot_v):
     plot_thread.timer = timer ### attach timer to thread so that it is not garbage collected
     QThreadPool.globalInstance().setExpiryTimeout(-1)
 
-    timer.timeout.connect(lambda : worker.get_bpm_data())
-    # timer.timeout.connect(lambda : worker.bars_h.setOpts(height=100*np.sin(np.arange(worker.N)) + np.random.random(worker.N)*10-5 - worker.reference_h))
-    # timer.timeout.connect(lambda : worker.bars_v.setOpts(height=100*np.sin(np.arange(worker.N)) + np.random.random(worker.N)*10-5 - worker.reference_v))
+    # timer.timeout.connect(lambda : worker.get_bpm_data())
+    ### timer.timeout.connect(lambda : worker.bars_h.setOpts(height=100*np.sin(np.arange(worker.N)) + np.random.random(worker.N)*10-5 - worker.reference_h))
+    ### timer.timeout.connect(lambda : worker.bars_v.setOpts(height=100*np.sin(np.arange(worker.N)) + np.random.random(worker.N)*10-5 - worker.reference_v))
 
     timer.timeout.connect(worker.check_interruption)
-    timer.setInterval(100)
-    plot_thread.finished.connect(timer.stop)
+    # timer.setInterval(100)
+    # plot_thread.finished.connect(timer.stop)
     return plot_thread

@@ -38,7 +38,7 @@ plot_thread = get_plot_thread(plot_h, plot_v)
 worker = plot_thread.worker
 
 button_plot = QPushButton('Plot', parent=window) 
-button_plot.clicked.connect(lambda : worker.get_bpm_data())
+button_plot.clicked.connect(worker.plot)
 # button_plot.clicked.connect(lambda : worker.bars_h.setOpts(height=np.random.random(worker.N)*10-5))
 # button_plot.clicked.connect(lambda : worker.bars_v.setOpts(height=np.random.random(worker.N)*10-5))
 
