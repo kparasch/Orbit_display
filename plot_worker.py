@@ -50,8 +50,6 @@ class References(object):
 
     def switch_to_no_ref(self, flag, worker):
         if flag:
-            #thread, restart_thread = self.get_and_stop_thread(worker)
-
             orbit_h = worker.bars_h.opts['height'] + worker.reference_h
             orbit_v = worker.bars_v.opts['height'] + worker.reference_v
 
@@ -62,13 +60,8 @@ class References(object):
             worker.bars_v.setOpts(height=orbit_v - worker.reference_v)
             worker.active_reference = 0
 
-            #if restart_thread:
-            #    thread.start()
-
     def switch_to_ref1(self, flag, worker):
         if flag:
-            #thread, restart_thread = self.get_and_stop_thread(worker)
-
             orbit_h = worker.bars_h.opts['height'] + worker.reference_h
             orbit_v = worker.bars_v.opts['height'] + worker.reference_v
 
@@ -77,13 +70,9 @@ class References(object):
 
             worker.bars_h.setOpts(height=orbit_h - worker.reference_h)
             worker.bars_v.setOpts(height=orbit_v - worker.reference_v)
-            #if restart_thread:
-            #    thread.start()
 
     def switch_to_ref2(self, flag, worker):
         if flag:
-            #thread, restart_thread = self.get_and_stop_thread(worker)
-
             orbit_h = worker.bars_h.opts['height'] + worker.reference_h
             orbit_v = worker.bars_v.opts['height'] + worker.reference_v
             
@@ -93,17 +82,13 @@ class References(object):
             worker.bars_h.setOpts(height=orbit_h - worker.reference_h)
             worker.bars_v.setOpts(height=orbit_v - worker.reference_v)
 
-            #if restart_thread:
-            #    thread.start()
-
     def set_ref_to_save(self, flag, ref_to_save: str):
         if flag:
             self.ref_to_save = ref_to_save
     
     def save_reference(self, worker):
-        # thread, restart_thread = self.get_and_stop_thread(worker)
-
         print('trying to save', self.ref_to_save)
+
         if self.ref_to_save == '1':
             print('saving 1')
             self.reference_1_h = worker.bars_h.opts['height'] + worker.reference_h
@@ -113,9 +98,6 @@ class References(object):
             self.reference_2_v = worker.bars_v.opts['height'] + worker.reference_v
         else:
             raise Exception(f'Unknown reference: {self.ref_to_save}')
-        
-        # if restart_thread:
-        #     thread.start()
 
     
 class Plot_worker(QObject):
@@ -168,11 +150,13 @@ class Plot_worker(QObject):
 
     @pyqtSlot(np.ndarray)
     def plot_x(self, orbit_x):
-        self.bars_h.setOpts(height=orbit_x - self.reference_h)
+        self.orbit_x = orbit_x
+        self.bars_h.setOpts(height=self.orbit_x - self.reference_h)
 
     @pyqtSlot(np.ndarray)
     def plot_y(self, orbit_y):
-        self.bars_v.setOpts(height=orbit_y - self.reference_v)
+        self.orbit_y = orbit_y
+        self.bars_v.setOpts(height=self.orbit_y - self.reference_v)
 
 
 class Thread_worker(QObject):
