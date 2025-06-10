@@ -12,6 +12,9 @@ pink = (254, 83, 187)
 DESYdarkblue = (0,75,110)
 MYCOL = DESYOrange
 
+NM_TO_M = 1e-9
+BPM_ADDRESS = '/PETRA/REFORBIT/BPM_SWR_13'
+BPM_PROPERTY = {'x' : 'SA_X_BBAGO', 'y' : 'SA_Y_BBAGO'}
 
 class References(object):
     def __init__(self):
@@ -79,6 +82,7 @@ class Plot_worker(QObject):
     def __init__(self):
         super().__init__()
 
+
         self.plot_h = pg.plot()
         self.plot_v = pg.plot()
 
@@ -133,6 +137,15 @@ class Plot_worker(QObject):
         self.orbit_y = orbit_y
         self.bars_v.setOpts(height=self.orbit_y - self.reference_y)
 
+    def get_bpm_data(self):
+        orbit_x = np.array(pt.get(address=BPM_ADDRESS, property=BPM_PROPERTY['x'])['data'][:-2])
+        orbit_y = np.array(pt.get(address=BPM_ADDRESS, property=BPM_PROPERTY['y'])['data'][:-2])
+        orbit_x *= NM_TO_M
+        orbit_y *= NM_TO_M
+        self.plot_x(orbit_x)
+        self.plot_y(orbit_y)
+
+
 
 class Thread_worker(QObject):
     finished = pyqtSignal()
@@ -143,37 +156,22 @@ class Thread_worker(QObject):
     def __init__(self):
         super().__init__()
 
-        self.nm_to_m = 1e-9
-
         self.bpm_list = [line.strip('\n,\'') for line in open('bpm_list.txt','r').readlines()][:-2]
         self.N = len(self.bpm_list) 
-
-        self.bpm_address = '/PETRA/REFORBIT/BPM_SWR_13'
-        self.bpm_property = {'x' : 'SA_X_BBAGO', 'y' : 'SA_Y_BBAGO'}
 
         self.orbit_x = np.zeros(self.N)
         self.orbit_y = np.zeros(self.N)
 
         print('Plot worker initialized')
 
-    def get_bpm_data(self):
-        self.orbit_x[:] = pt.get(address=self.bpm_address, property=self.bpm_property['x'])['data'][:-2]
-        self.orbit_y[:] = pt.get(address=self.bpm_address, property=self.bpm_property['y'])['data'][:-2]
-        self.orbit_x *= self.nm_to_m
-        self.orbit_y *= self.nm_to_m
-        self.got_x.emit(orbit_x)
-        self.got_y.emit(orbit_y)
-        self.bars_h.setOpts(height=orbit_x - self.reference_h)
-        self.bars_v.setOpts(height=orbit_y - self.reference_v)
-
     def attach_callback_x(self, id, cc, d):
         self.orbit_x[:] = d['data'][:-2] 
-        self.orbit_x *= self.nm_to_m
+        self.orbit_x *= NM_TO_M
         self.got_x.emit(self.orbit_x)
 
     def attach_callback_y(self, id, cc, d):
         self.orbit_y[:] = d['data'][:-2] #
-        self.orbit_y *= self.nm_to_m
+        self.orbit_y *= NM_TO_M
         self.got_y.emit(self.orbit_y)
 
     @pyqtSlot()
@@ -192,9 +190,9 @@ class Thread_worker(QObject):
         #self.selectedBPMs.setEnabled(False)
         print('Starting to_plot!')
         self.thread().timer.start()
-        lidx = pt.attach(address=self.bpm_address, property=self.bpm_property['x'], callback=self.attach_callback_x, interval=100)
+        lidx = pt.attach(address=BPM_ADDRESS, property=BPM_PROPERTY['x'], callback=self.attach_callback_x, interval=100)
         self.lidx = lidx
-        lidy = pt.attach(address=self.bpm_address, property=self.bpm_property['y'], callback=self.attach_callback_y, interval=100)
+        lidy = pt.attach(address=BPM_ADDRESS, property=BPM_PROPERTY['y'], callback=self.attach_callback_y, interval=100)
         self.lidy = lidy
         print(f'Tine IDs: {lidx}, {lidy}')
 
@@ -222,7 +220,7 @@ def get_plot_thread(plot_worker):
     plot_thread.timer = timer 
 
     #prevent thread from expiring?
-    QThreadPool.globalInstance().setExpiryTimeout(-1)
+    # QThreadPool.globalInstance().setExpiryTimeout(-1)
 
     # timer.timeout.connect(lambda : worker.get_bpm_data())
 
