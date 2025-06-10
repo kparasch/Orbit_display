@@ -56,14 +56,14 @@ class References(object):
     def save_reference(self, worker):
         if self.ref_to_save == '1':
             print('Saving to reference 1.')
-            self.reference_1_x = worker.orbit_x
-            self.reference_1_y = worker.orbit_y
+            self.reference_1_x = worker.orbit_x.copy()
+            self.reference_1_y = worker.orbit_y.copy()
             if worker.active_reference == 1:
                 self.switch_to_ref1(True, worker)
         elif self.ref_to_save == '2':
             print('Saving to reference 2.')
-            self.reference_2_x = worker.orbit_x
-            self.reference_2_y = worker.orbit_y
+            self.reference_2_x = worker.orbit_x.copy()
+            self.reference_2_y = worker.orbit_y.copy()
             if worker.active_reference == 2:
                 self.switch_to_ref2(True, worker)
         else:
