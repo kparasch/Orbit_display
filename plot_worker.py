@@ -1,8 +1,7 @@
 from PyQt6.QtCore import pyqtSignal, QObject, QThread, QCoreApplication, QTimer, pyqtSlot, QThreadPool
 import pyqtgraph as pg
 import numpy as np
-import time
-import PyTine as pt
+import pydoocs
 
 DESYCyan = (0, 159, 223)
 DESYOrange = (241, 143, 31)
@@ -10,9 +9,18 @@ DESYdarkblue = (0,75,110)
 MYCOL = DESYOrange
 
 NM_TO_M = 1e-9
-BPM_ADDRESS = '/PETRA/REFORBIT/BPM_SWR_13'
-BPM_PROPERTY = {'x' : 'SA_X_BBAGO', 'y' : 'SA_Y_BBAGO'}
+BPM_ADDRESS_X = 'PETRA/REFORBIT/*/SA_X_BBAGO'
+BPM_ADDRESS_Y = 'PETRA/REFORBIT/*/SA_Y_BBAGO'
+REFRESH_RATE = 100
 
+def get_pydoocs_orbit():
+    data_x = pydoocs.read(BPM_ADDRESS_X)
+    orbit_x = np.array([dd[1] for dd in data_x['data'][:-2]])
+    data_y = pydoocs.read(BPM_ADDRESS_Y)
+    orbit_y = np.array([dd[1] for dd in data_y['data'][:-2]])
+    orbit_x *= NM_TO_M
+    orbit_y *= NM_TO_M
+    return orbit_x, orbit_y
     
 class Plot_worker(QObject):
     def __init__(self):
@@ -73,10 +81,7 @@ class Plot_worker(QObject):
         self.bars_y.setOpts(height=self.orbit_y - self.reference_y)
 
     def get_bpm_data(self):
-        orbit_x = np.array(pt.get(address=BPM_ADDRESS, property=BPM_PROPERTY['x'])['data'][:-2])
-        orbit_y = np.array(pt.get(address=BPM_ADDRESS, property=BPM_PROPERTY['y'])['data'][:-2])
-        orbit_x *= NM_TO_M
-        orbit_y *= NM_TO_M
+        orbit_x, orbit_y = get_pydoocs_orbit()
         self.store_x(orbit_x)
         self.store_y(orbit_y)
 
@@ -98,14 +103,10 @@ class Thread_worker(QObject):
 
         print('Plot worker initialized')
 
-    def attach_callback_x(self, id, cc, d):
-        self.orbit_x[:] = d['data'][:-2] 
-        self.orbit_x *= NM_TO_M
+    @pyqtSlot()
+    def emit_orbit(self):
+        self.orbit_x, self.orbit_y = get_pydoocs_orbit()
         self.got_x.emit(self.orbit_x)
-
-    def attach_callback_y(self, id, cc, d):
-        self.orbit_y[:] = d['data'][:-2] #
-        self.orbit_y *= NM_TO_M
         self.got_y.emit(self.orbit_y)
 
     @pyqtSlot()
@@ -114,21 +115,12 @@ class Thread_worker(QObject):
             self.thread().timer.stop()
             print('Plot thread has been requested to interrupt.')
             self.finished.emit()
-            pt.detach(self.lidx)
-            pt.detach(self.lidy)
-            print(f'Tine IDs detached: {self.lidx}, {self.lidy}')
             return
 
     @pyqtSlot()
     def subscribe(self):
-        #self.selectedBPMs.setEnabled(False)
         print('Starting to_plot!')
         self.thread().timer.start()
-        lidx = pt.attach(address=BPM_ADDRESS, property=BPM_PROPERTY['x'], callback=self.attach_callback_x, interval=100)
-        self.lidx = lidx
-        lidy = pt.attach(address=BPM_ADDRESS, property=BPM_PROPERTY['y'], callback=self.attach_callback_y, interval=100)
-        self.lidy = lidy
-        print(f'Tine IDs: {lidx}, {lidy}')
 
 def get_plot_thread(plot_worker):
     plot_thread = QThread()
@@ -139,8 +131,10 @@ def get_plot_thread(plot_worker):
     worker.got_y.connect(plot_worker.store_y)
 
     timer = QTimer()
+    timer.setInterval(REFRESH_RATE)
     timer.moveToThread(plot_thread)
     timer.timeout.connect(worker.check_interruption)
+    timer.timeout.connect(worker.emit_orbit)
     plot_thread.started.connect(worker.subscribe)
     worker.finished.connect(plot_thread.quit)
     
