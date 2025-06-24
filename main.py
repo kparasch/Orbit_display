@@ -91,6 +91,18 @@ group_save = GroupSave(parent=window)
 group_save.box1.checkStateChanged.connect(lambda : references.set_ref_to_save(group_save.box1.isChecked(), '1'))
 group_save.box2.checkStateChanged.connect(lambda : references.set_ref_to_save(group_save.box2.isChecked(), '2'))
 
+def print_to_file():
+    filename = 'screenshot.png'
+    win_id = window.winId()
+    screenshot = app.primaryScreen().grabWindow(win_id)
+    scaled_screenshot = screenshot.scaled(screenshot.width()//2, screenshot.height()//2, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+    screenshot.save(filename, 'png')
+    #scaled_screenshot.save(filename, 'png')
+    print(f'Saved screenshot as {filename}')
+    
+button_print = QPushButton('Print', parent=window) 
+button_print.clicked.connect(print_to_file)
+
 layout.addWidget(plot_worker.plot_x, 0, 0, 1, 3)
 layout.addWidget(plot_worker.plot_y, 1, 0, 1, 3)
 
@@ -102,5 +114,6 @@ layout.addWidget(checkbox_orbit, 4, 0, 1, 1)
 layout.addWidget(checkbox_ref1, 5, 0, 1, 1)
 layout.addWidget(checkbox_ref2, 6, 0, 1, 1)
 layout.addWidget(group_save, 3, 1, 1, 1)
+layout.addWidget(button_print, 6, 2, 1, 1)
 window.show()
 sys.exit(app.exec())
