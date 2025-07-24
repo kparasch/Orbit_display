@@ -58,7 +58,6 @@ references = References()
 button_save = QPushButton('Save reference', parent=window) 
 button_save.clicked.connect(lambda : references.save_reference(plot_worker))
 
-group_display_box = QGroupBox(parent=window)
 group_display = QButtonGroup(parent=window)
 checkbox_orbit = QCheckBox('Orbit', parent=window)
 checkbox_ref1 = QCheckBox('Orbit - Reference 1', parent=window)
