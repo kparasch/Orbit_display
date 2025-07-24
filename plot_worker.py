@@ -1,25 +1,37 @@
 from PyQt6.QtCore import pyqtSignal, QObject, QThread, QCoreApplication, QTimer, pyqtSlot, QThreadPool
 import pyqtgraph as pg
 import numpy as np
-import pydoocs
+# import pydoocs
+import pySC.control_system.client as pySC_client
 
 DESYCyan = (0, 159, 223)
 DESYOrange = (241, 143, 31)
 DESYdarkblue = (0,75,110)
 MYCOL = DESYOrange
 
+#BPM_LIST = 'bpm_list.txt'
 NM_TO_M = 1e-9
-BPM_ADDRESS_X = 'PETRA/REFORBIT/*/SA_X_BBAGO'
-BPM_ADDRESS_Y = 'PETRA/REFORBIT/*/SA_Y_BBAGO'
-REFRESH_RATE = 100
+# BPM_ADDRESS_X = 'PETRA/REFORBIT/*/SA_X_BBAGO'
+# BPM_ADDRESS_Y = 'PETRA/REFORBIT/*/SA_Y_BBAGO'
+# REFRESH_RATE = 100
 
-def get_pydoocs_orbit():
-    data_x = pydoocs.read(BPM_ADDRESS_X)
-    orbit_x = np.array([dd[1] for dd in data_x['data'][:-2]])
-    data_y = pydoocs.read(BPM_ADDRESS_Y)
-    orbit_y = np.array([dd[1] for dd in data_y['data'][:-2]])
-    orbit_x *= NM_TO_M
-    orbit_y *= NM_TO_M
+BPM_LIST = 'petra4_bpm_list.txt'
+BPM_ADDRESS_X = '127.0.0.1:13131/ORBIT/RAW/X'
+BPM_ADDRESS_Y = '127.0.0.1:13131/ORBIT/RAW/Y'
+REFRESH_RATE = 1000
+
+# def get_orbit():
+#     data_x = pydoocs.read(BPM_ADDRESS_X)
+#     orbit_x = np.array([dd[1] for dd in data_x['data'][:-2]])
+#     data_y = pydoocs.read(BPM_ADDRESS_Y)
+#     orbit_y = np.array([dd[1] for dd in data_y['data'][:-2]])
+#     orbit_x *= NM_TO_M
+#     orbit_y *= NM_TO_M
+#     return orbit_x, orbit_y
+
+def get_orbit():
+    orbit_x = pySC_client.read(BPM_ADDRESS_X)
+    orbit_y = pySC_client.read(BPM_ADDRESS_Y)
     return orbit_x, orbit_y
     
 class Plot_worker(QObject):
@@ -29,7 +41,8 @@ class Plot_worker(QObject):
         self.plot_x = pg.plot()
         self.plot_y = pg.plot()
 
-        self.bpm_list = [line.strip('\n,\'') for line in open('bpm_list.txt','r').readlines()][:-2]
+        self.bpm_list = [line.strip('\n,\'') for line in open(BPM_LIST,'r').readlines()]
+        #self.bpm_list = [line.strip('\n,\'') for line in open(BPM_LIST,'r').readlines()][:-2]
         self.N = len(self.bpm_list) 
         self.ymin = -0.002
         self.ymax = +0.002
@@ -49,8 +62,11 @@ class Plot_worker(QObject):
         self.plot_x.setBackground(DESYdarkblue)
         self.plot_y.setBackground(DESYdarkblue)
 	
-        xticks =  [[-0.5, 'SWR'], [21.5, 'W'], [45.5 ,'NW'], [67.5, 'N'], [98.5, 'NO'], 
-                   [172.5, 'O'], [205.5, 'SO'], [224.5, 'S'], [245.5, 'SWL']]
+#         xticks =  [[-0.5, 'SWR'], [21.5, 'W'], [45.5 ,'NW'], [67.5, 'N'], [98.5, 'NO'], 
+#                    [172.5, 'O'], [205.5, 'SO'], [224.5, 'S'], [245.5, 'SWL']]
+
+        xticks =  [[-0.5, 'INJ'], [97.5, 'S'], [196.5 ,'SW'], [294.5, 'W'], [392.5, 'NW'], 
+                   [490.5, 'N'], [588.5, 'NO'], [686.5, 'O'], [786.5, 'SW']]
 
         for graph in [self.plot_x, self.plot_y]: 
             for xpos, xlabel in xticks:
@@ -81,7 +97,7 @@ class Plot_worker(QObject):
         self.bars_y.setOpts(height=self.orbit_y - self.reference_y)
 
     def get_bpm_data(self):
-        orbit_x, orbit_y = get_pydoocs_orbit()
+        orbit_x, orbit_y = get_orbit()
         self.store_x(orbit_x)
         self.store_y(orbit_y)
 
@@ -95,7 +111,7 @@ class Thread_worker(QObject):
     def __init__(self):
         super().__init__()
 
-        self.bpm_list = [line.strip('\n,\'') for line in open('bpm_list.txt','r').readlines()][:-2]
+        self.bpm_list = [line.strip('\n,\'') for line in open(BPM_LIST,'r').readlines()]# [:-2]
         self.N = len(self.bpm_list) 
 
         self.orbit_x = np.zeros(self.N)
@@ -105,7 +121,7 @@ class Thread_worker(QObject):
 
     @pyqtSlot()
     def emit_orbit(self):
-        self.orbit_x, self.orbit_y = get_pydoocs_orbit()
+        self.orbit_x, self.orbit_y = get_orbit()
         self.got_x.emit(self.orbit_x)
         self.got_y.emit(self.orbit_y)
 

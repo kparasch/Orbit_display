@@ -1,8 +1,9 @@
 import numpy as np
+from plot_worker import BPM_LIST
 
 class References(object):
     def __init__(self):
-        self.bpm_list = [line.strip('\n,\'') for line in open('bpm_list.txt','r').readlines()][:-2]
+        self.bpm_list = [line.strip('\n,\'') for line in open(BPM_LIST,'r').readlines()]#[:-2]
         self.N = len(self.bpm_list) 
 
         self.zero = np.zeros(self.N)
